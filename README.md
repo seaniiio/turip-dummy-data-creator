@@ -34,13 +34,24 @@ CSV 파일 생성 후 MySQL `LOAD DATA INFILE` 로 일괄 적재합니다.
 
 ## 사전 준비
 
+macOS는 `python` 대신 `python3`을 사용하며, 가상환경을 권장합니다.
+
 ```bash
+# 가상환경 생성 (최초 1회)
+python3 -m venv .venv
+
+# 가상환경 활성화 (터미널 열 때마다)
+source .venv/bin/activate
+
+# 의존성 설치 (최초 1회)
 pip install -r requirements.txt
 ```
 
 ---
 
 ## 사용 방법
+
+> **전제 조건**: 스프링 프로젝트의 Flyway 마이그레이션이 먼저 실행되어 테이블이 생성된 상태여야 합니다.
 
 ### 1. CSV 생성
 
@@ -56,6 +67,7 @@ python main.py
 ```bash
 docker exec turip-mysql-dev mkdir -p /var/lib/mysql-files/turip
 docker cp output/. turip-mysql-dev:/var/lib/mysql-files/turip/
+docker cp load/load_all.sql turip-mysql-dev:/var/lib/mysql-files/turip/
 ```
 
 ### 3. MySQL 접속 후 적재
