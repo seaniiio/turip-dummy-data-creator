@@ -134,8 +134,8 @@ def _generate_favorite_content(output_dir: str) -> None:
             base_content = (account_id - 1) * config.CONTENTS_PER_ACCOUNT
             for offset in range(config.CONTENTS_PER_ACCOUNT):
                 content_id = (base_content + offset) % config.CONTENT_COUNT + 1
-                # 찜 날짜: account_id 기반 결정론적 날짜
-                day_offset = (account_id + offset * 3) % 365
+                # 찜 날짜: account_id 기반 결정론적 날짜 (month 1~12 보장)
+                day_offset = (account_id + offset * 3) % 360   # 30 * 12 = 360
                 created_at = f"2025-{(day_offset // 30) + 1:02d}-{(day_offset % 28) + 1:02d}"
                 w.writerow([record_id, account_id, content_id, created_at])
                 record_id += 1
