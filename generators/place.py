@@ -31,7 +31,7 @@ _CATEGORIES = [
     "호텔", "게스트하우스", "호스텔", "리조트", "펜션", "캠핑장", "에어비앤비",
     "쇼핑몰", "백화점", "전통시장", "아울렛", "편집샵", "서점", "약국", "면세점",
     "지하철역", "버스터미널", "공항", "기차역", "항구", "렌터카", "주차장",
-    "병원", "클리닉", "약국",
+    "병원", "클리닉", "의원",
     "헬스장", "수영장", "테니스장", "골프장", "스키장", "서핑스쿨", "다이빙센터",
     "테마파크", "놀이공원", "워터파크", "동물원", "식물원", "수족관", "천문대",
     "대학교", "학교", "도서관", "연구소",
@@ -75,7 +75,7 @@ _CATEGORIES = [
     "포토존", "인스타그램 명소",
     "공항 면세점", "기념품샵",
     "기타",
-]  # 200개
+]  # 229개
 
 _PLACE_TYPES = [
     "광장", "거리", "골목", "공원", "해변", "산", "호수", "폭포", "계곡",
@@ -100,7 +100,7 @@ def _generate_category(output_dir: str) -> None:
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["id", "name"])
-        for i, name in enumerate(_CATEGORIES, 1):
+        for i, name in enumerate(_CATEGORIES[:config.CATEGORY_COUNT], 1):
             w.writerow([i, name])
     print(f"  category.csv      : {config.CATEGORY_COUNT}행")
 
