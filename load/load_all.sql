@@ -28,6 +28,33 @@ SET SQL_LOG_BIN        = 0;
 SET autocommit         = 0;
 
 -- ──────────────────────────────────────────────────────────────
+-- 0. 기존 데이터 초기화 (재실행 가능하도록, 역 FK 순서)
+-- ──────────────────────────────────────────────────────────────
+
+TRUNCATE TABLE favorite_place;
+TRUNCATE TABLE favorite_content;
+TRUNCATE TABLE favorite_folder_account;
+TRUNCATE TABLE favorite_folder;
+TRUNCATE TABLE content_place;
+TRUNCATE TABLE content;
+TRUNCATE TABLE creator;
+TRUNCATE TABLE place_category;
+TRUNCATE TABLE place;
+TRUNCATE TABLE category;
+TRUNCATE TABLE refresh_token;
+TRUNCATE TABLE social_member;
+TRUNCATE TABLE turip_member;
+TRUNCATE TABLE member;
+TRUNCATE TABLE guest;
+TRUNCATE TABLE account;
+TRUNCATE TABLE city;
+TRUNCATE TABLE province;
+TRUNCATE TABLE country;
+
+COMMIT;
+SELECT '===== 테이블 초기화 완료 =====' AS status;
+
+-- ──────────────────────────────────────────────────────────────
 -- 1. Region 도메인
 -- ──────────────────────────────────────────────────────────────
 
