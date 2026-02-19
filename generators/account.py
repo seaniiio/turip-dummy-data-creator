@@ -13,7 +13,7 @@ account.role  : 모두 'USER'
 account.nickname : '여행자_XXXXX' (5자리 인덱스, UNIQUE 보장)
 
 turip_member.login_password : BCrypt 더미 해시 (전체 동일)
-social_member.provider      : GOOGLE(홀수) / KAKAO(짝수)
+social_member.provider      : GOOGLE (전체)
 refresh_token.device_fid    : member_id 기반 UUID 형식 문자열
 """
 
@@ -104,7 +104,7 @@ def _generate_turip_member(output_dir: str) -> None:
 def _generate_social_member(output_dir: str) -> None:
     """
     member_id 2,501 ~ 5,000 을 소셜 로그인으로 처리.
-    provider    : 홀수 member_id → GOOGLE, 짝수 → KAKAO
+    provider    : GOOGLE (전체)
     provider_id : '{provider}_{member_id:010d}' (UNIQUE per provider 보장)
     """
     path = f"{output_dir}/social_member.csv"
@@ -113,7 +113,7 @@ def _generate_social_member(output_dir: str) -> None:
         w.writerow(["id", "member_id", "provider", "provider_id"])
         for i in range(1, config.SOCIAL_MEMBER_COUNT + 1):
             member_id = config.TURIP_MEMBER_COUNT + i  # 2,501 ~ 5,000
-            provider = "GOOGLE" if member_id % 2 == 1 else "KAKAO"
+            provider = "GOOGLE"
             provider_id = f"{provider.lower()}_{member_id:010d}"
             w.writerow([i, member_id, provider, provider_id])
     print(f"  social_member.csv : {config.SOCIAL_MEMBER_COUNT}행")
