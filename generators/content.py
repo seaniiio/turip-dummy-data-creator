@@ -6,8 +6,12 @@ content      :   100,000개  (creator_id, city_id 랜덤 참조)
 content_place: 2,000,000개  (content당 20개, 5일 * 4곳)
 
 content.url    : 'https://www.youtube.com/watch?v={id:011d}' (UNIQUE)
-content.title  : '{creator_id}번 크리에이터의 {city_name} 여행 EP.{n}' 형식
-                  UNIQUE(creator_id, title) 보장 — 크리에이터별 순번 증가
+content.title  : 유튜브 브이로그 스타일 4가지 패턴 중 하나 (content_id % 4)
+                  패턴 0 — "{hook} {city} 찐{type} | {ep}번째 영상 VLOG"
+                  패턴 1 — "{city}여행 vlog{ep}. {city} {kw1}과 {kw2}ㅣ{kw3}ㅣ{kw4}"
+                  패턴 2 — "{style} {city} {ep}번째 여행{emoji} ㅣ{course}ㅣ{kw1}ㅣ{kw2}ㅣ{kw3}"
+                  패턴 3 — "{city} {ep}번째 여행 | {hook} {type}"
+                  UNIQUE(creator_id, title) 보장 — 모든 패턴에 ep 포함
 
 content_place 구조 (content당 20개):
   visit_day   : 1 ~ 5 (5일 여행)
@@ -32,16 +36,81 @@ _CHANNEL_NOUNS = [
     "여행자", "탐험가", "방랑자", "나그네", "여행러", "트래블러", "여행꾼",
     "바람", "구름", "별빛", "노을", "달빛", "파도", "봄날",
 ]
-_CONTENT_KEYWORDS = [
-    "vlog", "여행기", "숨은 맛집", "코스 추천", "현지 가이드",
-    "총정리", "여행 꿀팁", "필수 코스", "1박2일", "2박3일", "4박5일",
+
+# ── 제목 생성용 컴포넌트 ──────────────────────────────────────────────────────
+_CITY_NAMES = [
+    "서울", "부산", "제주", "경주", "강릉", "여수", "전주", "인천",
+    "대구", "광주", "대전", "울산", "수원", "춘천", "속초", "통영",
+    "거제", "남해", "안동", "포항", "창원", "목포", "순천", "군산",
+    "보령", "태안", "평창", "가평", "파주", "담양",
 ]
+_TRAVEL_HOOKS = [
+    "오픈런 없이 못먹는", "현지인도 모르는", "혼자서도 충분한",
+    "뚜벅이로 즐기는", "sns 난리난", "알짜배기만 모은",
+    "찐여행자의", "요즘 핫한", "가성비 최고", "미슐랭 인정한",
+    "안 가면 후회하는", "인생샷 건지는",
+]
+_TRAVEL_STYLES = [
+    "나혼자", "친구랑", "커플", "혼자서", "당일치기", "뚜벅이",
+]
+_CONTENT_TYPES = [
+    "맛집 투어🔥", "카페 투어☕", "핫플 탐방✨", "먹방 브이로그",
+    "숨은 명소 탐방", "맛집&카페 탐방",
+]
+_COURSE_TYPES = [
+    "당일치기 코스", "1박2일 코스", "2박3일 완벽 코스",
+    "뚜벅이 완전정복", "혼여 코스", "가성비 코스",
+]
+_PLACE_KEYWORDS = [
+    "미슐랭 국밥", "갓성비 오마카세", "감성 소품샵", "인생 카페",
+    "야경 명소", "로컬 빵집", "혼술 바", "해산물 맛집",
+    "고기 맛집", "디저트 카페", "뷰 맛집", "전통 시장",
+    "공방 체험", "루프탑 카페", "이자카야", "라멘 맛집",
+    "현지 분식", "트렌디 카페", "편집샵 투어", "편의점 성지",
+]
+_TITLE_EMOJIS = ["🚃", "✈️", "🏖️", "🎒", "🗺️", "🌟", "💫", "🧸", "🍜", "☕"]
 
 _BASE_UPLOAD_DATE = date(2020, 1, 1)
 _MAX_OFFSET_DAYS  = (date(2025, 12, 31) - _BASE_UPLOAD_DATE).days
 
 # content_place time_line: 하루 4곳 시간대
 _VISIT_TIMES = ["09:00:00", "11:00:00", "13:00:00", "15:00:00"]
+
+
+def _make_title(content_id: int, city_id: int, ep: int) -> str:
+    """
+    content_id 별 로컬 RNG를 사용해 전역 random 시퀀스에 영향 없이
+    유튜브 브이로그 스타일 제목을 생성한다.
+    모든 패턴에 ep가 포함되어 UNIQUE(creator_id, title)을 보장한다.
+    """
+    rng  = random.Random(content_id * 997 + config.SEED)
+    city = _CITY_NAMES[(city_id - 1) % len(_CITY_NAMES)]
+    pat  = content_id % 4
+
+    if pat == 0:
+        # 예) "오픈런 없이 못먹는 부산 찐맛집 투어🔥 | 3번째 영상 VLOG"
+        hook  = rng.choice(_TRAVEL_HOOKS)
+        ctype = rng.choice(_CONTENT_TYPES)
+        return f"{hook} {city} 찐{ctype} | {ep}번째 영상 VLOG"
+
+    elif pat == 1:
+        # 예) "부산여행 vlog3. 부산 미슐랭 국밥과 인생 카페ㅣ야경 명소ㅣ감성 소품샵"
+        kws = rng.sample(_PLACE_KEYWORDS, 4)
+        return f"{city}여행 vlog{ep}. {city} {kws[0]}과 {kws[1]}ㅣ{kws[2]}ㅣ{kws[3]}"
+
+    elif pat == 2:
+        # 예) "나혼자 부산 5번째 여행🚃 ㅣ당일치기 코스ㅣ갓성비 오마카세ㅣ루프탑 카페ㅣ혼술 바"
+        style  = rng.choice(_TRAVEL_STYLES)
+        emoji  = rng.choice(_TITLE_EMOJIS)
+        course = rng.choice(_COURSE_TYPES)
+        kws    = rng.sample(_PLACE_KEYWORDS, 3)
+        return f"{style} {city} {ep}번째 여행{emoji} ㅣ{course}ㅣ{kws[0]}ㅣ{kws[1]}ㅣ{kws[2]}"
+
+    else:
+        # 예) "부산 7번째 여행 | 현지인도 모르는 카페 투어☕"
+        hook  = rng.choice(_TRAVEL_HOOKS)
+        ctype = rng.choice(_CONTENT_TYPES)
+        return f"{city} {ep}번째 여행 | {hook} {ctype}"
 
 
 def generate(output_dir: str) -> None:
@@ -88,8 +157,7 @@ def _generate_content(output_dir: str) -> None:
             ep = creator_ep.get(creator_id, 0) + 1
             creator_ep[creator_id] = ep
 
-            kw    = _CONTENT_KEYWORDS[content_id % len(_CONTENT_KEYWORDS)]
-            title = f"도시{city_id} {kw} EP.{ep}"
+            title = _make_title(content_id, city_id, ep)
             url   = f"https://www.youtube.com/watch?v={content_id:011d}"
 
             offset = random.randint(0, _MAX_OFFSET_DAYS)
