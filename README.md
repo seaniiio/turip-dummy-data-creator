@@ -149,15 +149,15 @@ const tokens = new SharedArray("tokens", function () {
 
 ### Account
 
-| 테이블 | account_id 범위 | 비고                  |
-| ------ | --------------- | --------------------- |
-| guest  | 1 ~ 5,000       | guest.id = account_id |
-| member | 5,001 ~ 10,000  | member.id = 1 ~ 5,000 |
+| 테이블 | account_id 범위 | 비고                   |
+| ------ | --------------- | ---------------------- |
+| member | 1 ~ 5,000       | member.id = account_id |
+| guest  | 5,001 ~ 10,000  | guest.id = 1 ~ 5,000   |
 
-| 테이블        | member_id 범위 |
-| ------------- | -------------- |
-| turip_member  | 1 ~ 2,500      |
-| social_member | 2,501 ~ 5,000  |
+| 테이블        | member_id 범위 | account_id 범위 |
+| ------------- | -------------- | --------------- |
+| turip_member  | 1 ~ 2,500      | 1 ~ 2,500       |
+| social_member | 2,501 ~ 5,000  | 2,501 ~ 5,000   |
 
 ### Favorite Folder
 

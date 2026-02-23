@@ -2,11 +2,11 @@
 Account / Auth 도메인 CSV 생성기
 
 ID 구간 설계:
-  account    : 1 ~ 10,000
-  guest      : account_id 1 ~ 5,000     (guest.id = account_id)
-  member     : account_id 5,001 ~ 10,000 (member.id = 1 ~ 5,000)
-  turip_member  : member_id 1 ~ 2,500
-  social_member : member_id 2,501 ~ 5,000
+  account       : 1 ~ 10,000
+  member        : account_id 1 ~ 5,000     (member.id = account_id)
+    turip_member  : member_id 1 ~ 2,500
+    social_member : member_id 2,501 ~ 5,000
+  guest         : account_id 5,001 ~ 10,000 (guest.id = 1 ~ 5,000)
   refresh_token : member_id 1 ~ 5,000 각 1개
 
 account.role  : 모두 'USER'
@@ -34,10 +34,10 @@ _BASE_DATE = datetime(2025, 1, 1)
 
 def generate(output_dir: str) -> None:
     _generate_account(output_dir)
-    _generate_guest(output_dir)
     _generate_member(output_dir)
     _generate_turip_member(output_dir)
     _generate_social_member(output_dir)
+    _generate_guest(output_dir)
     _generate_refresh_token(output_dir)
 
 
@@ -51,9 +51,28 @@ def _generate_account(output_dir: str) -> None:
     print(f"  account.csv       : {config.ACCOUNT_COUNT}행")
 
 
+def _generate_member(output_dir: str) -> None:
+    """
+    account_id 1 ~ 5,000 을 member로 매핑.
+    member.id = account_id = 1 ~ 5,000
+    email     = 'member_{id:05d}@turip.com' (UNIQUE 보장)
+    """
+    path = f"{output_dir}/member.csv"
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "account_id", "email", "is_first_login"])
+        for member_id in range(1, config.MEMBER_COUNT + 1):
+            account_id = member_id  # 1 ~ 5,000
+            email = f"member_{member_id:05d}@turip.com"
+            is_first_login = 0  # 로그인 기록 있음 (refresh_token 있으므로)
+            w.writerow([member_id, account_id, email, is_first_login])
+    print(f"  member.csv        : {config.MEMBER_COUNT}행")
+
+
 def _generate_guest(output_dir: str) -> None:
     """
-    account_id 1 ~ 5,000 을 guest로 매핑.
+    account_id 5,001 ~ 10,000 을 guest로 매핑.
+    guest.id = 1 ~ 5,000
     device_fid : 'device-{account_id:08d}' (UNIQUE 보장)
     """
     path = f"{output_dir}/guest.csv"
@@ -61,27 +80,9 @@ def _generate_guest(output_dir: str) -> None:
         w = csv.writer(f)
         w.writerow(["id", "account_id", "device_fid"])
         for i in range(1, config.GUEST_COUNT + 1):
-            account_id = i
+            account_id = config.MEMBER_COUNT + i  # 5,001 ~ 10,000
             w.writerow([i, account_id, f"device-{account_id:08d}"])
     print(f"  guest.csv         : {config.GUEST_COUNT}행")
-
-
-def _generate_member(output_dir: str) -> None:
-    """
-    account_id 5,001 ~ 10,000 을 member로 매핑.
-    member.id   = 1 ~ 5,000
-    email       = 'member_{id:05d}@turip.com' (UNIQUE 보장)
-    """
-    path = f"{output_dir}/member.csv"
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "account_id", "email", "is_first_login"])
-        for member_id in range(1, config.MEMBER_COUNT + 1):
-            account_id = config.GUEST_COUNT + member_id  # 5,001 ~ 10,000
-            email = f"member_{member_id:05d}@turip.com"
-            is_first_login = 0  # 로그인 기록 있음 (refresh_token 있으므로)
-            w.writerow([member_id, account_id, email, is_first_login])
-    print(f"  member.csv        : {config.MEMBER_COUNT}행")
 
 
 def _generate_turip_member(output_dir: str) -> None:
