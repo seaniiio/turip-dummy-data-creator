@@ -7,28 +7,28 @@ CSV 파일 생성 후 MySQL `LOAD DATA INFILE` 로 일괄 적재합니다.
 
 ## 생성 데이터 규모
 
-| 도메인 | 테이블 | 행 수 |
-|--------|--------|------:|
-| Region | country | 50 |
-| | province | 17 |
-| | city | 250 |
-| Account/Auth | account | 10,000 |
-| | guest | 5,000 |
-| | member | 5,000 |
-| | turip_member | 2,500 |
-| | social_member | 2,500 |
-| | refresh_token | 5,000 |
-| Place | category | 200 |
-| | place | 1,700,000 |
-| | place_category | 50,000 |
-| Creator/Content | creator | 7,500 |
-| | content | 100,000 |
-| | content_place | 2,000,000 |
-| Favorite | favorite_folder | 50,000 |
-| | favorite_folder_account | 110,000 |
-| | favorite_content | 200,000 |
-| | favorite_place | 750,000 |
-| **합계** | | **≈ 4,997,517** |
+| 도메인          | 테이블                  |           행 수 |
+| --------------- | ----------------------- | --------------: |
+| Region          | country                 |              50 |
+|                 | province                |              17 |
+|                 | city                    |             250 |
+| Account/Auth    | account                 |          10,000 |
+|                 | guest                   |           5,000 |
+|                 | member                  |           5,000 |
+|                 | turip_member            |           2,500 |
+|                 | social_member           |           2,500 |
+|                 | refresh_token           |           5,000 |
+| Place           | category                |             200 |
+|                 | place                   |       1,700,000 |
+|                 | place_category          |          50,000 |
+| Creator/Content | creator                 |           7,500 |
+|                 | content                 |         100,000 |
+|                 | content_place           |       2,000,000 |
+| Favorite        | favorite_folder         |          50,000 |
+|                 | favorite_folder_account |         110,000 |
+|                 | favorite_content        |         200,000 |
+|                 | favorite_place          |         750,000 |
+| **합계**        |                         | **≈ 4,997,517** |
 
 ---
 
@@ -88,6 +88,7 @@ SOURCE /var/lib/mysql-files/turip/load_all.sql;
 turip-dummy-data-creator/
 ├── main.py               # 진입점 — 도메인 순서대로 생성기 호출
 ├── config.py             # 행 수, 시드값 등 전역 상수
+├── generate_tokens.py    # k6 부하테스트용 JWT 토큰 CSV 생성 (독립 실행)
 ├── requirements.txt
 ├── .gitignore
 ├── generators/
@@ -102,29 +103,71 @@ turip-dummy-data-creator/
 
 ---
 
+## k6 부하테스트용 JWT 토큰 생성
+
+`generate_tokens.py`는 더미데이터와 **독립적으로** 동작하는 스크립트입니다.
+k6 스크립트와 같은 디렉토리에서 실행하거나, 생성된 `tokens.csv`를 k6 실행 위치로 복사하세요.
+
+### 환경변수
+
+| 변수                | 설명                                      | 기본값               |
+| ------------------- | ----------------------------------------- | -------------------- |
+| `JWT_SECRET`        | 시크릿 키                                 | 부하테스트 서버용 키 |
+| `JWT_SECRET_BASE64` | `true` 시 시크릿을 Base64 디코딩하여 사용 | `false`              |
+| `JWT_ALGORITHM`     | 서명 알고리즘                             | `HS256`              |
+| `JWT_EXPIRE_DAYS`   | 토큰 유효기간 (일)                        | `30`                 |
+| `ACCOUNT_COUNT`     | 생성할 토큰 수 (account_id 1 ~ N)         | `10000`              |
+
+### 실행
+
+```bash
+# 기본값으로 실행
+python3 generate_tokens.py
+
+# 토큰 수 지정
+ACCOUNT_COUNT=500 python3 generate_tokens.py
+
+# 다른 서버 시크릿 사용
+JWT_SECRET=other-secret JWT_SECRET_BASE64=false python3 generate_tokens.py
+```
+
+`tokens.csv`가 생성되며 k6에서 아래와 같이 사용합니다.
+
+```js
+const tokens = new SharedArray("tokens", function () {
+  return open("./tokens.csv")
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+});
+```
+
+---
+
 ## ID 구간 설계
 
 ### Account
 
-| 테이블 | account_id 범위 | 비고 |
-|--------|----------------|------|
-| guest | 1 ~ 5,000 | guest.id = account_id |
-| member | 5,001 ~ 10,000 | member.id = 1 ~ 5,000 |
+| 테이블 | account_id 범위 | 비고                  |
+| ------ | --------------- | --------------------- |
+| guest  | 1 ~ 5,000       | guest.id = account_id |
+| member | 5,001 ~ 10,000  | member.id = 1 ~ 5,000 |
 
-| 테이블 | member_id 범위 |
-|--------|---------------|
-| turip_member | 1 ~ 2,500 |
-| social_member | 2,501 ~ 5,000 |
+| 테이블        | member_id 범위 |
+| ------------- | -------------- |
+| turip_member  | 1 ~ 2,500      |
+| social_member | 2,501 ~ 5,000  |
 
 ### Favorite Folder
 
-| folder_id 범위 | 종류 | is_default | is_shared |
-|---------------|------|-----------|---------|
-| 1 ~ 10,000 | 기본 폴더 | 1 | 0 |
-| 10,001 ~ 20,000 | 공유 커스텀 1 | 0 | 1 |
-| 20,001 ~ 30,000 | 공유 커스텀 2 | 0 | 1 |
-| 30,001 ~ 40,000 | 개인 커스텀 1 | 0 | 0 |
-| 40,001 ~ 50,000 | 개인 커스텀 2 | 0 | 0 |
+| folder_id 범위  | 종류          | is_default | is_shared |
+| --------------- | ------------- | ---------- | --------- |
+| 1 ~ 10,000      | 기본 폴더     | 1          | 0         |
+| 10,001 ~ 20,000 | 공유 커스텀 1 | 0          | 1         |
+| 20,001 ~ 30,000 | 공유 커스텀 2 | 0          | 1         |
+| 30,001 ~ 40,000 | 개인 커스텀 1 | 0          | 0         |
+| 40,001 ~ 50,000 | 개인 커스텀 2 | 0          | 0         |
 
 ---
 
