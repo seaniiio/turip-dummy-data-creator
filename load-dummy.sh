@@ -4,7 +4,7 @@ set -euo pipefail
 # ─── 설정 (환경변수로 재정의 가능) ──────────────────────────────────────────
 CONTAINER="${MYSQL_CONTAINER:-turip-mysql-loadtest}"
 DB="${MYSQL_DB:-turip_loadtest}"
-MYSQL_USER="${MYSQL_USER:-root}"
+MYSQL_USER="${MYSQL_USER:-}"  # 디폴트값 없음 - 환경변수 또는 입력 필수
 CONTAINER_CSV_DIR="/var/lib/mysql-files/turip"
 
 # ─── 출력 헬퍼 ──────────────────────────────────────────────────────────────
@@ -27,6 +27,12 @@ if [ -z "${ACCOUNT_COUNT:-}" ]; then
   ACCOUNT_COUNT="${ACCOUNT_COUNT:-10000}"
 fi
 export ACCOUNT_COUNT
+
+# ─── MySQL 사용자 ────────────────────────────────────────────────────────────
+if [ -z "${MYSQL_USER:-}" ]; then
+  read -rp "MySQL 사용자 (예: turip_loader): " MYSQL_USER
+  [ -z "$MYSQL_USER" ] && error "MySQL 사용자는 필수입니다."
+fi
 
 # ─── MySQL 비밀번호 ──────────────────────────────────────────────────────────
 if [ -z "${MYSQL_PASSWORD:-}" ]; then
