@@ -18,6 +18,7 @@ CSV 파일 생성 후 MySQL `LOAD DATA INFILE` 로 일괄 적재합니다.
 |                 | turip_member            |           2,500 |
 |                 | social_member           |           2,500 |
 |                 | refresh_token           |           5,000 |
+|                 | fcm_token               |          10,000 |
 | Place           | category                |             200 |
 |                 | place                   |       1,700,000 |
 |                 | place_category          |          50,000 |
@@ -28,7 +29,7 @@ CSV 파일 생성 후 MySQL `LOAD DATA INFILE` 로 일괄 적재합니다.
 |                 | favorite_folder_account |         110,000 |
 |                 | favorite_content        |         200,000 |
 |                 | favorite_place          |         750,000 |
-| **합계**        |                         | **≈ 4,997,517** |
+| **합계**        |                         | **≈ 5,007,517** |
 
 ---
 
@@ -53,27 +54,54 @@ pip install -r requirements.txt
 
 > **전제 조건**: 스프링 프로젝트의 Flyway 마이그레이션이 먼저 실행되어 테이블이 생성된 상태여야 합니다.
 
-### 1. CSV 생성
+### 방법 A. 자동화 스크립트 (권장)
+
+CSV 생성부터 DB 적재까지 한 번에 실행합니다.
 
 ```bash
+# 실행 권한 부여 (최초 1회)
+chmod +x load-dummy.sh
+
+# 실행
+./load-dummy.sh
+```
+
+실행 중 입력 사항:
+- `ACCOUNT_COUNT`: 생성할 계정 수 (기본값: 10000)
+- `MySQL 비밀번호`: MySQL root 비밀번호
+
+환경변수로 미리 설정 가능:
+```bash
+# Docker 컨테이너/DB 이름이 다른 경우
+MYSQL_CONTAINER=turip-mysql-dev MYSQL_DB=turip_dev ./load-dummy.sh
+
+# ACCOUNT_COUNT 미리 지정
+ACCOUNT_COUNT=1000 ./load-dummy.sh
+```
+
+### 방법 B. 수동 실행 (단계별)
+
+#### 1. CSV 생성
+
+```bash
+source .venv/bin/activate
 python main.py
 ```
 
 `output/` 디렉토리에 테이블별 CSV 파일이 생성됩니다.
 대용량 테이블(place, content_place)은 10% 단위 진행률을 출력합니다.
 
-### 2. CSV → Docker 컨테이너 복사
+#### 2. CSV → Docker 컨테이너 복사
 
 ```bash
 docker exec turip-mysql-dev mkdir -p /var/lib/mysql-files/turip
 docker cp output/. turip-mysql-dev:/var/lib/mysql-files/turip/
-docker cp load/load_all.sql turip-mysql-dev:/var/lib/mysql-files/turip/
 ```
 
-### 3. MySQL 접속 후 적재
+#### 3. MySQL 접속 후 적재
 
 ```bash
-docker exec -it turip-mysql-dev mysql -u root -p turip_dummy_1
+docker exec -it turip-mysql-dev mysql -u root -p turip_dev
 ```
 
 ```sql
@@ -93,7 +121,7 @@ turip-dummy-data-creator/
 ├── .gitignore
 ├── generators/
 │   ├── region.py         # country / province / city
-│   ├── account.py        # account / guest / member / turip_member / social_member / refresh_token
+│   ├── account.py        # account / guest / member / turip_member / social_member / refresh_token / fcm_token
 │   ├── place.py          # category / place / place_category
 │   ├── content.py        # creator / content / content_place
 │   └── favorite.py       # favorite_folder / favorite_folder_account / favorite_content / favorite_place

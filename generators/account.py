@@ -39,6 +39,7 @@ def generate(output_dir: str) -> None:
     _generate_social_member(output_dir)
     _generate_guest(output_dir)
     _generate_refresh_token(output_dir)
+    _generate_fcm_token(output_dir)
 
 
 def _generate_account(output_dir: str) -> None:
@@ -47,7 +48,12 @@ def _generate_account(output_dir: str) -> None:
         w = csv.writer(f)
         w.writerow(["id", "role", "nickname"])
         for i in range(1, config.ACCOUNT_COUNT + 1):
-            w.writerow([i, "USER", f"여행자_{i:05d}"])
+            # member(1~5000): "여행자_XXXXX", guest(5001~10000): "게스트_XXXXX"
+            if i <= config.MEMBER_COUNT:
+                nickname = f"여행자_{i:05d}"
+            else:
+                nickname = f"게스트_{50000 + i}"
+            w.writerow([i, "USER", nickname])
     print(f"  account.csv       : {config.ACCOUNT_COUNT}행")
 
 
@@ -56,16 +62,18 @@ def _generate_member(output_dir: str) -> None:
     account_id 1 ~ 5,000 을 member로 매핑.
     member.id = account_id = 1 ~ 5,000
     email     = 'member_{id:05d}@turip.com' (UNIQUE 보장)
+    is_migration_decided = 1 (전체 마이그레이션 완료 상태)
     """
     path = f"{output_dir}/member.csv"
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["id", "account_id", "email", "is_first_login"])
+        w.writerow(["id", "account_id", "email", "is_first_login", "is_migration_decided"])
         for member_id in range(1, config.MEMBER_COUNT + 1):
             account_id = member_id  # 1 ~ 5,000
             email = f"member_{member_id:05d}@turip.com"
             is_first_login = 0  # 로그인 기록 있음 (refresh_token 있으므로)
-            w.writerow([member_id, account_id, email, is_first_login])
+            is_migration_decided = 1  # 마이그레이션 완료
+            w.writerow([member_id, account_id, email, is_first_login, is_migration_decided])
     print(f"  member.csv        : {config.MEMBER_COUNT}행")
 
 
@@ -146,3 +154,36 @@ def _generate_refresh_token(output_dir: str) -> None:
                 expired_at.strftime("%Y-%m-%d %H:%M:%S"),
             ])
     print(f"  refresh_token.csv : {config.REFRESH_TOKEN_COUNT}행")
+
+
+def _generate_fcm_token(output_dir: str) -> None:
+    """
+    account 1 ~ 10,000에 대해 각 1개씩 FCM 토큰 생성.
+    token : 'fcm-token-{account_id:08d}-{device_num}' 형식 (UNIQUE 보장)
+    device_fid : account_id 기반 'device-{account_id:08d}'
+    notification_enabled : 1 (전체 알림 활성화)
+    created_at, updated_at : 2025-01-01 ~ 2025-12-31 사이 랜덤
+    """
+    path = f"{output_dir}/fcm_token.csv"
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "account_id", "device_fid", "token", "notification_enabled", "created_at", "updated_at"])
+
+        record_id = 1
+        for account_id in range(1, config.ACCOUNT_COUNT + 1):
+            device_fid = f"device-{account_id:08d}"
+            token = f"fcm-token-{account_id:08d}-{hashlib.sha256(f'{account_id}-{config.SEED}'.encode()).hexdigest()[:32]}"
+            notification_enabled = 1
+
+            offset_days = random.randint(0, 364)
+            created_at = _BASE_DATE + timedelta(days=offset_days)
+            updated_at = created_at + timedelta(days=random.randint(0, 30))
+
+            w.writerow([
+                record_id, account_id, device_fid, token, notification_enabled,
+                created_at.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                updated_at.strftime("%Y-%m-%d %H:%M:%S.%f"),
+            ])
+            record_id += 1
+
+    print(f"  fcm_token.csv     : {config.ACCOUNT_COUNT}행")

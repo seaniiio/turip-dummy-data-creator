@@ -41,6 +41,7 @@ TRUNCATE TABLE creator;
 TRUNCATE TABLE place_category;
 TRUNCATE TABLE place;
 TRUNCATE TABLE category;
+TRUNCATE TABLE fcm_token;
 TRUNCATE TABLE refresh_token;
 TRUNCATE TABLE social_member;
 TRUNCATE TABLE turip_member;
@@ -113,7 +114,7 @@ FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
-(id, account_id, email, is_first_login);
+(id, account_id, email, is_first_login, is_migration_decided);
 
 LOAD DATA INFILE '/var/lib/mysql-files/turip/turip_member.csv'
 INTO TABLE turip_member
@@ -138,6 +139,14 @@ ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
 (id, member_id, device_fid, token_hash, issued_at, expired_at);
+
+LOAD DATA INFILE '/var/lib/mysql-files/turip/fcm_token.csv'
+INTO TABLE fcm_token
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(id, account_id, device_fid, token, notification_enabled, created_at, updated_at);
 
 COMMIT;
 SELECT 'Account/Auth 도메인 완료' AS status;
